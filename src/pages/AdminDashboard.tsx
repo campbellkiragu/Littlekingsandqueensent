@@ -4,8 +4,6 @@ import { useRouter } from '../components/Router';
 
 export function AdminDashboard() {
   const { navigate } = useRouter();
-
-  // Hardcoded products state
   const [products, setProducts] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
@@ -21,14 +19,13 @@ export function AdminDashboard() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
 
+  // Redirect to login if not logged in
   useEffect(() => {
-    // Redirect to login if not logged in
     if (localStorage.getItem('adminLoggedIn') !== 'true') {
       navigate('/admin/login');
     }
   }, [navigate]);
 
-  // Handle adding/updating product locally
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
