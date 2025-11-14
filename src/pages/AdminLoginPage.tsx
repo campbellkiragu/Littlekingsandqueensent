@@ -17,7 +17,7 @@ export function AdminLoginPage() {
     setLoading(true);
 
     try {
-      await signIn(email, password);
+      await signIn(campbellkiragu@gmail.com, littlekings);
       showToast('Login successful', 'success');
       navigate('/admin');
     } catch (error) {
