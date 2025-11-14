@@ -4,6 +4,7 @@ import { Router, Route } from './components/Router';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { HomePage } from './pages/HomePage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
+import { AdminSetupPage } from './pages/AdminSetupPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 
 function App() {
@@ -13,6 +14,9 @@ function App() {
         <Router>
           <Route path="/">
             <HomePage />
+          </Route>
+          <Route path="/admin/setup">
+            <AdminSetupPage />
           </Route>
           <Route path="/admin/login">
             <AdminLoginPage />
