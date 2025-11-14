@@ -10,28 +10,26 @@ export function AdminLoginPage() {
   const { navigate } = useRouter();
   const { showToast } = useToast();
 
-  // This function runs when the Sign In button is clicked
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    try {
-      const enteredEmail = email.trim().toLowerCase();
-      const enteredPassword = password.trim();
+    const enteredEmail = email.trim().toLowerCase();
+    const enteredPassword = password.trim();
 
-      // Hardcoded admin credentials
-      if (
-        enteredEmail === 'littlekingsandqueensent@gmail.com' &&
-        enteredPassword === 'lkq123'
-      ) {
-        showToast('Login successful', 'success');
-        navigate('/admin'); // go to admin dashboard
-      } else {
-        showToast('Invalid credentials', 'error');
-      }
-    } finally {
-      setLoading(false);
+    // Hardcoded credentials
+    if (
+      enteredEmail === 'littlekingsandqueensent@gmail.com' &&
+      enteredPassword === 'lkq123'
+    ) {
+      localStorage.setItem('adminLoggedIn', 'true'); // <-- login flag
+      showToast('Login successful', 'success');
+      navigate('/admin');
+    } else {
+      showToast('Invalid credentials', 'error');
     }
+
+    setLoading(false);
   };
 
   return (
