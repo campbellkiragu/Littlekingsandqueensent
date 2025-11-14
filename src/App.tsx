@@ -1,26 +1,30 @@
+import { AuthProvider } from './contexts/AuthContext';
+import { ToastProvider } from './components/Toast';
 import { Router, Route } from './components/Router';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { HomePage } from './pages/HomePage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
-import { HomePage } from './pages/HomePage'; // your home page component
 
 function App() {
   return (
-    <Router>
-      {/* Home page */}
-      <Route path="/">
-        <HomePage />
-      </Route>
-
-      {/* Admin login page */}
-      <Route path="/admin/login">
-        <AdminLoginPage />
-      </Route>
-
-      {/* Admin dashboard */}
-      <Route path="/admin">
-        <AdminDashboard />
-      </Route>
-    </Router>
+    <AuthProvider>
+      <ToastProvider>
+        <Router>
+          <Route path="/">
+            <HomePage />
+          </Route>
+          <Route path="/admin/login">
+            <AdminLoginPage />
+          </Route>
+          <Route path="/admin">
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          </Route>
+        </Router>
+      </ToastProvider>
+    </AuthProvider>
   );
 }
 
