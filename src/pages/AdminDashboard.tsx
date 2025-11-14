@@ -1,19 +1,15 @@
 import { useState, useEffect } from 'react';
 import { LogOut, Plus, Edit2, Trash2, Upload, X } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from '../components/Router';
-import { useToast } from '../components/Toast';
-import { supabase } from '../lib/supabase';
-import { Product, CATEGORIES } from '../types';
 
 export function AdminDashboard() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(false);
-  const { signOut } = useAuth();
   const { navigate } = useRouter();
-  const { showToast } = useToast();
+
+  // Hardcoded products state
+  const [products, setProducts] = useState<any[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -26,105 +22,40 @@ export function AdminDashboard() {
   const [imagePreview, setImagePreview] = useState<string>('');
 
   useEffect(() => {
-    loadProducts();
-  }, []);
-
-  const loadProducts = async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      showToast('Failed to load products', 'error');
-      return;
+    // Redirect to login if not logged in
+    if (localStorage.getItem('adminLoggedIn') !== 'true') {
+      navigate('/admin/login');
     }
+  }, [navigate]);
 
-    setProducts(data || []);
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/');
-    } catch (error) {
-      showToast('Failed to sign out', 'error');
-    }
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        showToast('Image must be less than 5MB', 'error');
-        return;
-      }
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
-
-  const uploadImage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('product-images')
-      .upload(filePath, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data } = supabase.storage.from('product-images').getPublicUrl(filePath);
-    return data.publicUrl;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Handle adding/updating product locally
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    try {
-      let imageUrl = editingProduct?.image_url || null;
+    const productData = {
+      id: editingProduct ? editingProduct.id : Date.now().toString(),
+      name: formData.name,
+      description: formData.description,
+      price: parseFloat(formData.price),
+      category: formData.category,
+      is_active: formData.is_active,
+      image_url: imagePreview || '',
+    };
 
-      if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
-      }
-
-      const productData = {
-        name: formData.name,
-        description: formData.description,
-        price: parseFloat(formData.price),
-        category: formData.category,
-        is_active: formData.is_active,
-        image_url: imageUrl,
-        updated_at: new Date().toISOString(),
-      };
-
-      if (editingProduct) {
-        const { error } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('id', editingProduct.id);
-
-        if (error) throw error;
-        showToast('Product updated successfully', 'success');
-      } else {
-        const { error } = await supabase.from('products').insert(productData);
-
-        if (error) throw error;
-        showToast('Product created successfully', 'success');
-      }
-
-      resetForm();
-      loadProducts();
-    } catch (error) {
-      showToast('Failed to save product', 'error');
-    } finally {
-      setLoading(false);
+    if (editingProduct) {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === editingProduct.id ? productData : p))
+      );
+    } else {
+      setProducts((prev) => [productData, ...prev]);
     }
+
+    resetForm();
+    setLoading(false);
   };
 
-  const handleEdit = (product: Product) => {
+  const handleEdit = (product: any) => {
     setEditingProduct(product);
     setFormData({
       name: product.name,
@@ -137,17 +68,16 @@ export function AdminDashboard() {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+  };
 
-    try {
-      const { error } = await supabase.from('products').delete().eq('id', id);
-
-      if (error) throw error;
-      showToast('Product deleted successfully', 'success');
-      loadProducts();
-    } catch (error) {
-      showToast('Failed to delete product', 'error');
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
@@ -163,6 +93,11 @@ export function AdminDashboard() {
     setImagePreview('');
     setEditingProduct(null);
     setShowModal(false);
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem('adminLoggedIn');
+    navigate('/admin/login');
   };
 
   return (
@@ -195,22 +130,16 @@ export function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
             <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="h-48 bg-gray-200">
+              <div className="h-48 bg-gray-200 flex items-center justify-center">
                 {product.image_url ? (
-                  <img
-                    src={product.image_url}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <span className="text-gray-400">No Image</span>
-                  </div>
+                  <span className="text-gray-400">No Image</span>
                 )}
               </div>
               <div className="p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-bold text-gray-900 line-clamp-1">{product.name}</h3>
+                  <h3 className="font-bold text-gray-900">{product.name}</h3>
                   <span
                     className={`px-2 py-1 rounded text-xs font-semibold ${
                       product.is_active
@@ -261,34 +190,21 @@ export function AdminDashboard() {
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Product Image
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
                 <div className="flex items-center gap-4">
                   {imagePreview && (
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-32 h-32 object-cover rounded-lg"
-                    />
+                    <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover rounded-lg" />
                   )}
                   <label className="flex-1 flex items-center justify-center gap-2 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-4 cursor-pointer hover:bg-gray-200 transition-colors">
                     <Upload className="w-5 h-5 text-gray-600" />
                     <span className="text-gray-600">Upload Image</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
+                    <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                   </label>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Product Name
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Product Name</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -299,9 +215,7 @@ export function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -313,9 +227,7 @@ export function AdminDashboard() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Price (KSh)
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Price (KSh)</label>
                   <input
                     type="number"
                     value={formData.price}
@@ -328,19 +240,15 @@ export function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   >
-                    {CATEGORIES.filter((c) => c !== 'All').map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
+                    <option value="Bouncing Castles">Bouncing Castles</option>
+                    <option value="Slides">Slides</option>
+                    <option value="Party Supplies">Party Supplies</option>
                   </select>
                 </div>
               </div>
