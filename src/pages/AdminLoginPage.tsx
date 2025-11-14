@@ -15,8 +15,12 @@ export function AdminLoginPage() {
     setLoading(true);
 
     try {
-      // Hardcoded admin login
-      if (email === 'littlekingsandqueensent@gmail.com' && password === 'lkq123') {
+      // Trim inputs before comparing
+      const enteredEmail = email.trim();
+      const enteredPassword = password.trim();
+
+      // Hardcoded admin credentials
+      if (enteredEmail === 'littlekingsandqueensent@gmail.com' && enteredPassword === 'lkq123') {
         showToast('Login successful', 'success');
         navigate('/admin');
       } else {
