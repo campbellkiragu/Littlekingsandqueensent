@@ -15,8 +15,8 @@ export function AdminLoginPage() {
     setLoading(true);
 
     try {
-      // Hardcoded admin login
-      if (email === 'admin' && password === 'admin') {
+      // Hardcoded email + password
+      if (email === 'littlekingsandqueensent@gmail.com' && password === 'lkq123') {
         showToast('Login successful', 'success');
         navigate('/admin');
       } else {
@@ -41,16 +41,16 @@ export function AdminLoginPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Username
+              Email Address
             </label>
             <input
               id="email"
-              type="text"              // <-- changed from "email" to "text"
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              placeholder="admin"
+              placeholder="littlekingsandqueensent@gmail.com"
             />
           </div>
 
@@ -65,7 +65,7 @@ export function AdminLoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              placeholder="admin"
+              placeholder="lkq123"
             />
           </div>
 
