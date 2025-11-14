@@ -10,19 +10,22 @@ export function AdminLoginPage() {
   const { navigate } = useRouter();
   const { showToast } = useToast();
 
+  // This function runs when the Sign In button is clicked
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Trim inputs before comparing
-      const enteredEmail = email.trim();
+      const enteredEmail = email.trim().toLowerCase();
       const enteredPassword = password.trim();
 
       // Hardcoded admin credentials
-      if (enteredEmail === 'littlekingsandqueensent@gmail.com' && enteredPassword === 'lkq123') {
+      if (
+        enteredEmail === 'littlekingsandqueensent@gmail.com' &&
+        enteredPassword === 'lkq123'
+      ) {
         showToast('Login successful', 'success');
-        navigate('/admin');
+        navigate('/admin'); // go to admin dashboard
       } else {
         showToast('Invalid credentials', 'error');
       }
@@ -53,8 +56,8 @@ export function AdminLoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               placeholder="littlekingsandqueensent@gmail.com"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
             />
           </div>
 
@@ -68,8 +71,8 @@ export function AdminLoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               placeholder="lkq123"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
             />
           </div>
 
