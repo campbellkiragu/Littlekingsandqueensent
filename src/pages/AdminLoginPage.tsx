@@ -15,7 +15,7 @@ export function AdminLoginPage() {
     setLoading(true);
 
     try {
-      // Hardcoded email + password
+      // Hardcoded admin login
       if (email === 'littlekingsandqueensent@gmail.com' && password === 'lkq123') {
         showToast('Login successful', 'success');
         navigate('/admin');
