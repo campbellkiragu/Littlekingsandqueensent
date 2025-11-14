@@ -10,26 +10,29 @@ export function AdminLoginPage() {
   const { navigate } = useRouter();
   const { showToast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const enteredEmail = email.trim().toLowerCase();
-    const enteredPassword = password.trim();
+    try {
+      const enteredEmail = email.trim().toLowerCase();
+      const enteredPassword = password.trim();
 
-    // Hardcoded credentials
-    if (
-      enteredEmail === 'littlekingsandqueensent@gmail.com' &&
-      enteredPassword === 'lkq123'
-    ) {
-      localStorage.setItem('adminLoggedIn', 'true'); // <-- login flag
-      showToast('Login successful', 'success');
-      navigate('/admin');
-    } else {
-      showToast('Invalid credentials', 'error');
+      // Hardcoded credentials
+      if (
+        enteredEmail === 'littlekingsandqueensent@gmail.com' &&
+        enteredPassword === 'lkq123'
+      ) {
+        // Save login flag for ProtectedRoute
+        localStorage.setItem('adminLoggedIn', 'true');
+        showToast('Login successful', 'success');
+        navigate('/admin');
+      } else {
+        showToast('Invalid credentials', 'error');
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
