@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Crown } from 'lucide-react';
 import { useRouter } from '../components/Router';
 import { useToast } from '../components/Toast';
+import { useAuth } from '../contexts/AuthContext';
 
 export function AdminLoginPage() {
   const [email, setEmail] = useState('');
@@ -9,27 +10,21 @@ export function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const { navigate } = useRouter();
   const { showToast } = useToast();
+  const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const enteredEmail = email.trim().toLowerCase();
-      const enteredPassword = password.trim();
-
-      // Hardcoded credentials
-      if (
-        enteredEmail === 'littlekingsandqueensent@gmail.com' &&
-        enteredPassword === 'lkq123'
-      ) {
-        // Save login flag for ProtectedRoute
-        localStorage.setItem('adminLoggedIn', 'true');
-        showToast('Login successful', 'success');
-        navigate('/admin');
-      } else {
-        showToast('Invalid credentials', 'error');
-      }
+      await signIn(email.trim().toLowerCase(), password.trim());
+      showToast('Login successful', 'success');
+      navigate('/admin');
+    } catch (error) {
+      showToast(
+        error instanceof Error ? error.message : 'Invalid credentials',
+        'error'
+      );
     } finally {
       setLoading(false);
     }

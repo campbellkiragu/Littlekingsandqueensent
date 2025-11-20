@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { LogOut, Plus, Edit2, Trash2, Upload, X } from 'lucide-react';
 import { useRouter } from '../components/Router';
+import { useAuth } from '../contexts/AuthContext';
 
 export function AdminDashboard() {
   const { navigate } = useRouter();
+  const { signOut } = useAuth();
   const [products, setProducts] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
@@ -18,13 +20,6 @@ export function AdminDashboard() {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
-
-  // Redirect to login if not logged in
-  useEffect(() => {
-    if (localStorage.getItem('adminLoggedIn') !== 'true') {
-      navigate('/admin/login');
-    }
-  }, [navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,9 +87,13 @@ export function AdminDashboard() {
     setShowModal(false);
   };
 
-  const handleSignOut = () => {
-    localStorage.removeItem('adminLoggedIn');
-    navigate('/admin/login');
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/admin/login');
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
   };
 
   return (

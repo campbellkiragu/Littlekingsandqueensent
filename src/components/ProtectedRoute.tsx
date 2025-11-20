@@ -1,6 +1,6 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode } from 'react';
 import { useRouter } from './Router';
-import { useToast } from './Toast';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -8,21 +8,9 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { navigate } = useRouter();
-  const { showToast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    const loggedIn = localStorage.getItem('adminLoggedIn') === 'true';
-    if (!loggedIn) {
-      showToast('Please login first', 'error');
-      navigate('/admin/login');
-    }
-    setIsLoggedIn(loggedIn);
-    setIsLoading(false);
-  }, [navigate, showToast]);
-
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-xl">Loading...</div>
@@ -30,8 +18,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!isLoggedIn) {
-    return null; // already redirected
+  if (!user) {
+    navigate('/admin/login');
+    return null;
   }
 
   return <>{children}</>;
