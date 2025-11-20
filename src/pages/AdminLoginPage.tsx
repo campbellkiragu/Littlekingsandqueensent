@@ -21,10 +21,9 @@ export function AdminLoginPage() {
       showToast('Login successful', 'success');
       navigate('/admin');
     } catch (error) {
-      showToast(
-        error instanceof Error ? error.message : 'Invalid credentials',
-        'error'
-      );
+      const message = error instanceof Error ? error.message : 'Login failed. Please try again.';
+      console.error('Login error:', error);
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }
