@@ -6,23 +6,41 @@ import { useAuth } from '../contexts/AuthContext';
 
 export function AdminLoginPage() {
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
   const { navigate } = useRouter();
   const { showToast } = useToast();
-  const { signIn } = useAuth();
+  const { sendOtp, verifyOtp } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await signIn(email.trim().toLowerCase());
-      setSent(true);
-      showToast('Check your email for the login link', 'success');
+      await sendOtp(email.trim().toLowerCase());
+      setOtpSent(true);
+      showToast('6-digit code sent to your email', 'success');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to send login link. Please try again.';
-      console.error('Login error:', error);
+      const message = error instanceof Error ? error.message : 'Failed to send code. Please try again.';
+      console.error('OTP error:', error);
+      showToast(message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      await verifyOtp(email.trim().toLowerCase(), otp.trim());
+      showToast('Login successful', 'success');
+      navigate('/admin');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Invalid code. Please try again.';
+      console.error('Verify OTP error:', error);
       showToast(message, 'error');
     } finally {
       setLoading(false);
@@ -40,26 +58,52 @@ export function AdminLoginPage() {
           <p className="text-gray-600">Little Kings & Queens Entertainment</p>
         </div>
 
-        {sent ? (
-          <div className="text-center space-y-4">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-green-800 font-medium">Check your email!</p>
-              <p className="text-green-700 text-sm mt-2">
-                We've sent a login link to <strong>{email}</strong>
+        {otpSent ? (
+          <form onSubmit={handleVerifyOtp} className="space-y-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-blue-800 font-medium text-sm">6-digit code sent</p>
+              <p className="text-blue-700 text-sm mt-1">
+                Check your email at <strong>{email}</strong>
               </p>
             </div>
+
+            <div>
+              <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
+                Enter 6-Digit Code
+              </label>
+              <input
+                id="otp"
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                maxLength="6"
+                placeholder="000000"
+                className="w-full px-4 py-3 text-center text-2xl tracking-widest border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono"
+              />
+            </div>
+
             <button
-              onClick={() => {
-                setSent(false);
-                setEmail('');
-              }}
-              className="text-amber-600 hover:text-amber-700 font-medium"
+              type="submit"
+              disabled={loading || otp.length !== 6}
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 rounded-lg font-semibold hover:from-amber-600 hover:to-orange-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Try another email
+              {loading ? 'Verifying...' : 'Sign In'}
             </button>
-          </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setOtpSent(false);
+                setEmail('');
+                setOtp('');
+              }}
+              className="w-full text-amber-600 hover:text-amber-700 font-medium"
+            >
+              Use different email
+            </button>
+          </form>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSendOtp} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
@@ -80,7 +124,7 @@ export function AdminLoginPage() {
               disabled={loading}
               className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 rounded-lg font-semibold hover:from-amber-600 hover:to-orange-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Sending link...' : 'Send Login Link'}
+              {loading ? 'Sending code...' : 'Send 6-Digit Code'}
             </button>
           </form>
         )}
