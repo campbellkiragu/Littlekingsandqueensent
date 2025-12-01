@@ -41,15 +41,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { data, error } = await supabase.auth.signInWithOtp({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        options: {
-          shouldCreateUser: true,
-        },
+        password: 'admin-passwordless-access',
       });
-      if (error) throw error;
 
-      if (data.session) {
+      if (error && error.status === 400) {
+        await supabase.auth.signUp({
+          email,
+          password: 'admin-passwordless-access',
+        });
+
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password: 'admin-passwordless-access',
+        });
+
+        if (signInError) throw signInError;
+        if (signInData.session) {
+          setSession(signInData.session);
+          setUser(signInData.user ?? null);
+        }
+      } else if (error) {
+        throw error;
+      } else if (data.session) {
         setSession(data.session);
         setUser(data.user ?? null);
       }
