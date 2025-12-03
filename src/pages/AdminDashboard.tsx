@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { LogOut, Plus, Edit2, Trash2, Upload, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Upload, X } from 'lucide-react';
 import { useRouter } from '../components/Router';
-import { useAuth } from '../contexts/AuthContext';
 
 export function AdminDashboard() {
   const { navigate } = useRouter();
-  const { signOut } = useAuth();
   const [products, setProducts] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
@@ -87,27 +85,11 @@ export function AdminDashboard() {
     setShowModal(false);
   };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/admin/login');
-    } catch (error) {
-      console.error('Sign out failed:', error);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-white shadow-md">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-4">
           <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2 text-gray-700 hover:text-red-600 transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            Sign Out
-          </button>
         </div>
       </header>
 
