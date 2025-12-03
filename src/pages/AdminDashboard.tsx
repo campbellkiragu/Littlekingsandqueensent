@@ -1,13 +1,37 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Upload, X } from 'lucide-react';
 import { useRouter } from '../components/Router';
+import { useToast } from '../components/Toast';
+import { supabase } from '../lib/supabase';
 
 export function AdminDashboard() {
   const { navigate } = useRouter();
+  const { showToast } = useToast();
   const [products, setProducts] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error) {
+      showToast('Failed to load products', 'error');
+    } finally {
+      setPageLoading(false);
+    }
+  };
 
   const [formData, setFormData] = useState({
     name: '',
@@ -19,30 +43,47 @@ export function AdminDashboard() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const productData = {
-      id: editingProduct ? editingProduct.id : Date.now().toString(),
-      name: formData.name,
-      description: formData.description,
-      price: parseFloat(formData.price),
-      category: formData.category,
-      is_active: formData.is_active,
-      image_url: imagePreview || '',
-    };
+    try {
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        category: formData.category,
+        is_active: formData.is_active,
+        image_url: imagePreview || null,
+      };
 
-    if (editingProduct) {
-      setProducts((prev) =>
-        prev.map((p) => (p.id === editingProduct.id ? productData : p))
+      if (editingProduct) {
+        const { error } = await supabase
+          .from('products')
+          .update(productData)
+          .eq('id', editingProduct.id);
+
+        if (error) throw error;
+        showToast('Product updated successfully', 'success');
+      } else {
+        const { error } = await supabase
+          .from('products')
+          .insert([productData]);
+
+        if (error) throw error;
+        showToast('Product added successfully', 'success');
+      }
+
+      await loadProducts();
+      resetForm();
+    } catch (error) {
+      showToast(
+        error instanceof Error ? error.message : 'Failed to save product',
+        'error'
       );
-    } else {
-      setProducts((prev) => [productData, ...prev]);
+    } finally {
+      setLoading(false);
     }
-
-    resetForm();
-    setLoading(false);
   };
 
   const handleEdit = (product: any) => {
@@ -58,16 +99,35 @@ export function AdminDashboard() {
     setShowModal(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      showToast('Product deleted successfully', 'success');
+      await loadProducts();
+    } catch (error) {
+      showToast(
+        error instanceof Error ? error.message : 'Failed to delete product',
+        'error'
+      );
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -105,6 +165,12 @@ export function AdminDashboard() {
           </button>
         </div>
 
+        {pageLoading ? (
+          <div className="text-center py-12">
+            <div className="inline-block w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="mt-4 text-gray-600">Loading products...</p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
             <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -152,6 +218,7 @@ export function AdminDashboard() {
             </div>
           ))}
         </div>
+        )}
       </main>
 
       {showModal && (
