@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Upload, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Upload, X, LogOut } from 'lucide-react';
 import { useRouter } from '../components/Router';
 import { useToast } from '../components/Toast';
 import { supabase } from '../lib/supabase';
@@ -12,10 +12,68 @@ export function AdminDashboard() {
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLogin, setIsLogin] = useState(true);
+  const [authError, setAuthError] = useState('');
 
   useEffect(() => {
-    loadProducts();
+    checkAuth();
   }, []);
+
+  const checkAuth = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+      if (session) {
+        loadProducts();
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        setEmail('');
+        setPassword('');
+        await checkAuth();
+      } else {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        showToast('Signup successful! You can now log in.', 'success');
+        setIsLogin(true);
+        setEmail('');
+        setPassword('');
+      }
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setIsAuthenticated(false);
+      setProducts([]);
+      showToast('Logged out successfully', 'success');
+    } catch (error) {
+      showToast('Logout failed', 'error');
+    }
+  };
 
   const loadProducts = async () => {
     try {
@@ -48,6 +106,11 @@ export function AdminDashboard() {
     setLoading(true);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated. Please log in again.');
+      }
+
       const productData = {
         name: formData.name,
         description: formData.description,
@@ -63,24 +126,29 @@ export function AdminDashboard() {
           .update(productData)
           .eq('id', editingProduct.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
         showToast('Product updated successfully', 'success');
       } else {
         const { error } = await supabase
           .from('products')
           .insert([productData]);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
         showToast('Product added successfully', 'success');
       }
 
       await loadProducts();
       resetForm();
     } catch (error) {
-      showToast(
-        error instanceof Error ? error.message : 'Failed to save product',
-        'error'
-      );
+      const errorMsg = error instanceof Error ? error.message : 'Failed to save product';
+      console.error('Product save error:', errorMsg);
+      showToast(errorMsg, 'error');
     } finally {
       setLoading(false);
     }
@@ -145,11 +213,95 @@ export function AdminDashboard() {
     setShowModal(false);
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-2xl p-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">Admin Access</h1>
+            <p className="text-gray-600 text-center mb-8">Manage products and inventory</p>
+
+            {authError && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {authError}
+              </div>
+            )}
+
+            <form onSubmit={handleAuthSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-2 rounded-lg font-semibold hover:from-amber-600 hover:to-orange-600 transition-all disabled:opacity-50"
+              >
+                {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Sign Up'}
+              </button>
+            </form>
+
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <p className="text-center text-gray-600 text-sm mb-4">
+                {isLogin ? "Don't have an account?" : "Already have an account?"}
+              </p>
+              <button
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setAuthError('');
+                }}
+                className="w-full text-amber-600 font-semibold hover:text-amber-700 transition-colors"
+              >
+                {isLogin ? 'Create Account' : 'Sign In'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-white shadow-md">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-red-600 hover:text-red-700 font-semibold transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            Logout
+          </button>
         </div>
       </header>
 
